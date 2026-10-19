@@ -1,5 +1,6 @@
 #include "registration.h"
 #include "authentication.h"
+#include "quiz.h"
 
 #include <iostream>
 #include <string>
@@ -48,17 +49,34 @@ std::string readPassword() {
 int main() {
     Registration registration("students.txt");
     Authentication authentication("students.txt");
+    QuizCatalog quizCatalog("quizzes.txt");
 
     int choice;
     std::string username;
 
     std::cout << "1. Register Student\n";
     std::cout << "2. Student Login\n";
+    std::cout << "3. Display Available Quizzes\n";
     std::cout << "Enter choice: ";
 
-    if (!(std::cin >> choice) || (choice != 1 && choice != 2)) {
+    if (!(std::cin >> choice) || choice < 1 || choice > 3) {
         std::cout << "Invalid choice.\n";
         return 1;
+    }
+
+    if (choice == 3) {
+        const auto quizzes = quizCatalog.getAvailableQuizzes();
+        if (quizzes.empty()) {
+            std::cout << "No available quizzes.\n";
+        } else {
+            std::cout << "\nAvailable Quizzes:\n";
+            for (const auto& quiz : quizzes) {
+                std::cout << quiz.id << " - " << quiz.title << "\n";
+                std::cout << "Description: " << quiz.description << "\n";
+                std::cout << "Questions: " << quiz.questionCount << "\n\n";
+            }
+        }
+        return 0;
     }
 
     std::cout << "Enter username: ";

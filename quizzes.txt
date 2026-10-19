@@ -1,0 +1,3 @@
+Q001|C++ Fundamentals|Variables, functions and basic syntax|10
+Q002|Database Management Systems|SQL, normalization and transactions|15
+Q003|Computer Networks|Network layers and communication protocols|12
