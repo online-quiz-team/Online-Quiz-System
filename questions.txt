@@ -1,0 +1,7 @@
+Q001|1|What does C++ use to define a class?|class|define|structs only|object|A
+Q001|2|Which header provides std::cout?|iostream|string|vector|fstream|A
+Q001|3|Which type stores true or false?|int|bool|char|float|B
+Q002|1|What does SQL stand for?|Structured Query Language|Simple Query List|System Query Logic|Sequential Question Language|A
+Q002|2|Which SQL command retrieves data?|INSERT|UPDATE|SELECT|DELETE|C
+Q003|1|How many layers are in the OSI model?|4|5|6|7|D
+Q003|2|Which protocol is used to browse secure websites?|FTP|HTTPS|SMTP|DNS|B

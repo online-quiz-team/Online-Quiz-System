@@ -58,9 +58,10 @@ int main() {
     std::cout << "2. Student Login\n";
     std::cout << "3. Display Available Quizzes\n";
     std::cout << "4. Select a Quiz\n";
+    std::cout << "5. Retrieve Quiz Questions and Options\n";
     std::cout << "Enter choice: ";
 
-    if (!(std::cin >> choice) || choice < 1 || choice > 4) {
+    if (!(std::cin >> choice) || choice < 1 || choice > 5) {
         std::cout << "Invalid choice.\n";
         return 1;
     }
@@ -101,6 +102,45 @@ int main() {
             std::cout << "Questions: " << selectedQuiz.questionCount << "\n";
         } else {
             std::cout << "Invalid quiz ID. Select an available quiz.\n";
+        }
+        return 0;
+    }
+
+    if (choice == 5) {
+        const auto quizzes = quizCatalog.getAvailableQuizzes();
+
+        if (quizzes.empty()) {
+            std::cout << "No available quizzes.\n";
+            return 0;
+        }
+
+        std::cout << "Enter quiz ID: ";
+        std::string quizId;
+        std::cin >> quizId;
+
+        QuizInfo selectedQuiz;
+        if (!quizCatalog.findQuizById(quizId, selectedQuiz)) {
+            std::cout << "Invalid quiz ID.\n";
+            return 0;
+        }
+
+        const auto questions =
+            quizCatalog.getQuestionsForQuiz(quizId, "questions.txt");
+
+        if (questions.empty()) {
+            std::cout << "No questions available for this quiz.\n";
+            return 0;
+        }
+
+        std::cout << "\nQuestions for " << selectedQuiz.title << ":\n";
+        for (const auto& question : questions) {
+            std::cout << question.questionNumber << ". "
+                      << question.questionText << "\n";
+            for (std::size_t i = 0; i < question.options.size(); ++i) {
+                std::cout << static_cast<char>('A' + i) << ". "
+                          << question.options[i] << "\n";
+            }
+            std::cout << "\n";
         }
         return 0;
     }

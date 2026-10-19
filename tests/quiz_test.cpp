@@ -35,6 +35,27 @@ int main() {
     assert(!catalog.findQuizById("UNKNOWN", selectedQuiz));
     assert(!catalog.findQuizById("", selectedQuiz));
 
+    const char* questionFile = "test_questions.txt";
+    {
+        std::ofstream file(questionFile);
+        file << "Q001|1|What is C++?|Language|Database|Protocol|OS|A\n";
+        file << "Q002|1|What is SQL?|Language|Query language|Protocol|OS|B\n";
+        file << "Q001|2|Which header provides cout?|iostream|string|vector|fstream|A\n";
+        file << "Q001|3|Malformed row\n";
+    }
+
+    const auto questions = catalog.getQuestionsForQuiz("Q001", questionFile);
+    assert(questions.size() == 2);
+    assert(questions[0].questionNumber == 1);
+    assert(questions[0].questionText == "What is C++?");
+    assert(questions[0].options.size() == 4);
+    assert(questions[0].options[0] == "Language");
+    assert(questions[0].correctAnswer == "A");
+    assert(questions[1].questionNumber == 2);
+
+    assert(catalog.getQuestionsForQuiz("UNKNOWN", questionFile).empty());
+    std::remove(questionFile);
+
     std::remove(filename);
 
     std::cout << "All quiz tests passed.\n";
