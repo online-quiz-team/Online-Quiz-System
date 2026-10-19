@@ -47,3 +47,16 @@ std::vector<QuizInfo> QuizCatalog::getAvailableQuizzes() const {
 
     return quizzes;
 }
+
+bool QuizCatalog::findQuizById(const std::string& id, QuizInfo& quiz) const {
+    const auto quizzes = getAvailableQuizzes();
+
+    for (const auto& availableQuiz : quizzes) {
+        if (availableQuiz.id == id) {
+            quiz = availableQuiz;
+            return true;
+        }
+    }
+
+    return false;
+}

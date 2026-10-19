@@ -27,6 +27,14 @@ int main() {
     assert(quizzes[1].id == "Q002");
     assert(quizzes[1].questionCount == 15);
 
+    QuizInfo selectedQuiz;
+    assert(catalog.findQuizById("Q001", selectedQuiz));
+    assert(selectedQuiz.title == "C++ Fundamentals");
+    assert(selectedQuiz.questionCount == 10);
+
+    assert(!catalog.findQuizById("UNKNOWN", selectedQuiz));
+    assert(!catalog.findQuizById("", selectedQuiz));
+
     std::remove(filename);
 
     std::cout << "All quiz tests passed.\n";

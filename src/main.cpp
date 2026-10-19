@@ -57,9 +57,10 @@ int main() {
     std::cout << "1. Register Student\n";
     std::cout << "2. Student Login\n";
     std::cout << "3. Display Available Quizzes\n";
+    std::cout << "4. Select a Quiz\n";
     std::cout << "Enter choice: ";
 
-    if (!(std::cin >> choice) || choice < 1 || choice > 3) {
+    if (!(std::cin >> choice) || choice < 1 || choice > 4) {
         std::cout << "Invalid choice.\n";
         return 1;
     }
@@ -75,6 +76,31 @@ int main() {
                 std::cout << "Description: " << quiz.description << "\n";
                 std::cout << "Questions: " << quiz.questionCount << "\n\n";
             }
+        }
+        return 0;
+    }
+
+    if (choice == 4) {
+        const auto quizzes = quizCatalog.getAvailableQuizzes();
+
+        if (quizzes.empty()) {
+            std::cout << "No available quizzes to select.\n";
+            return 0;
+        }
+
+        std::cout << "Enter quiz ID: ";
+        std::string quizId;
+        std::cin >> quizId;
+
+        QuizInfo selectedQuiz;
+        if (quizCatalog.findQuizById(quizId, selectedQuiz)) {
+            std::cout << "Quiz selected successfully.\n";
+            std::cout << "ID: " << selectedQuiz.id << "\n";
+            std::cout << "Title: " << selectedQuiz.title << "\n";
+            std::cout << "Description: " << selectedQuiz.description << "\n";
+            std::cout << "Questions: " << selectedQuiz.questionCount << "\n";
+        } else {
+            std::cout << "Invalid quiz ID. Select an available quiz.\n";
         }
         return 0;
     }
