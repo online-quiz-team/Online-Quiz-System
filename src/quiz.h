@@ -15,6 +15,7 @@ class QuizCatalog {
 public:
     explicit QuizCatalog(const std::string& filename);
     std::vector<QuizInfo> getAvailableQuizzes() const;
+    bool findQuizById(const std::string& id, QuizInfo& quiz) const;
 
 private:
     std::string storageFile;
