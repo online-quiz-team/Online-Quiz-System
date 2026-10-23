@@ -1,9 +1,11 @@
+
 #include "registration.h"
 #include "authentication.h"
 #include "quiz.h"
 
 #include <iostream>
 #include <string>
+#include <limits>
 #include <termios.h>
 #include <unistd.h>
 
@@ -68,16 +70,19 @@ int main() {
 
     if (choice == 3) {
         const auto quizzes = quizCatalog.getAvailableQuizzes();
+
         if (quizzes.empty()) {
             std::cout << "No available quizzes.\n";
         } else {
             std::cout << "\nAvailable Quizzes:\n";
+
             for (const auto& quiz : quizzes) {
                 std::cout << quiz.id << " - " << quiz.title << "\n";
                 std::cout << "Description: " << quiz.description << "\n";
                 std::cout << "Questions: " << quiz.questionCount << "\n\n";
             }
         }
+
         return 0;
     }
 
@@ -90,10 +95,12 @@ int main() {
         }
 
         std::cout << "Enter quiz ID: ";
+
         std::string quizId;
         std::cin >> quizId;
 
         QuizInfo selectedQuiz;
+
         if (quizCatalog.findQuizById(quizId, selectedQuiz)) {
             std::cout << "Quiz selected successfully.\n";
             std::cout << "ID: " << selectedQuiz.id << "\n";
@@ -103,6 +110,7 @@ int main() {
         } else {
             std::cout << "Invalid quiz ID. Select an available quiz.\n";
         }
+
         return 0;
     }
 
@@ -115,10 +123,12 @@ int main() {
         }
 
         std::cout << "Enter quiz ID: ";
+
         std::string quizId;
         std::cin >> quizId;
 
         QuizInfo selectedQuiz;
+
         if (!quizCatalog.findQuizById(quizId, selectedQuiz)) {
             std::cout << "Invalid quiz ID.\n";
             return 0;
@@ -132,16 +142,42 @@ int main() {
             return 0;
         }
 
-        std::cout << "\nQuestions for " << selectedQuiz.title << ":\n";
-        for (const auto& question : questions) {
-            std::cout << question.questionNumber << ". "
-                      << question.questionText << "\n";
-            for (std::size_t i = 0; i < question.options.size(); ++i) {
-                std::cout << static_cast<char>('A' + i) << ". "
-                          << question.options[i] << "\n";
+        // Consume the leftover newline after reading the quiz ID.
+        std::cin.ignore(
+            std::numeric_limits<std::streamsize>::max(), '\n');
+
+        for (std::size_t i = 0; i < questions.size(); ++i) {
+            // Clear the console before displaying each question.
+            std::cout << "\033[2J\033[H";
+
+            const auto& question = questions[i];
+
+            std::cout << "========================================\n";
+            std::cout << "          ONLINE QUIZ SYSTEM\n";
+            std::cout << "========================================\n\n";
+
+            std::cout << "Quiz: " << selectedQuiz.title << "\n";
+            std::cout << "Question " << i + 1
+                      << " of " << questions.size() << "\n\n";
+
+            std::cout << question.questionText << "\n\n";
+
+            for (std::size_t j = 0; j < question.options.size(); ++j) {
+                std::cout << static_cast<char>('A' + j) << ". "
+                          << question.options[j] << "\n";
             }
-            std::cout << "\n";
+
+            if (i + 1 < questions.size()) {
+                std::cout << "\nPress Enter for the next question..."
+                          << std::flush;
+
+                std::string input;
+                std::getline(std::cin, input);
+            } else {
+                std::cout << "\nYou have reached the last question.\n";
+            }
         }
+
         return 0;
     }
 
