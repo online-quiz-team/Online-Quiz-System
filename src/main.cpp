@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <cctype>
 #include <termios.h>
 #include <unistd.h>
 
@@ -166,6 +167,38 @@ int main() {
                 std::cout << static_cast<char>('A' + j) << ". "
                           << question.options[j] << "\n";
             }
+
+            // OQS-F-007: Validate the student's answer.
+            std::string answer;
+            char selectedOption = '\0';
+
+            while (true) {
+                std::cout << "\nEnter your answer (A-"
+                          << static_cast<char>(
+                                 'A' + question.options.size() - 1)
+                          << "): " << std::flush;
+
+                std::getline(std::cin, answer);
+
+                if (answer.size() == 1) {
+                    char option = static_cast<char>(
+                        std::toupper(
+                            static_cast<unsigned char>(answer[0])));
+
+                    if (option >= 'A' &&
+                        option < 'A' +
+                            static_cast<int>(question.options.size())) {
+                        selectedOption = option;
+                        break;
+                    }
+                }
+
+                std::cout
+                    << "Invalid option. Please enter a valid option.\n";
+            }
+
+            std::cout << "Answer accepted: "
+                      << selectedOption << "\n";
 
             if (i + 1 < questions.size()) {
                 std::cout << "\nPress Enter for the next question..."
