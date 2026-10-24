@@ -1,9 +1,10 @@
+
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -Isrc
 LDLIBS = -lssl -lcrypto
 
 TARGET = registration_app
-SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp
+SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp
 
 all: $(TARGET)
 
@@ -17,9 +18,11 @@ test:
 	./authentication_test
 	$(CXX) $(CXXFLAGS) tests/quiz_test.cpp src/quiz.cpp -o quiz_test
 	./quiz_test
-	rm -f registration_test authentication_test quiz_test
+	$(CXX) $(CXXFLAGS) tests/quiz_scoring_test.cpp src/quiz_scoring.cpp -o quiz_scoring_test
+	./quiz_scoring_test
+	rm -f registration_test authentication_test quiz_test quiz_scoring_test
 
 clean:
-	rm -f $(TARGET) registration_test authentication_test quiz_test
+	rm -f $(TARGET) registration_test authentication_test quiz_test quiz_scoring_test
 
 .PHONY: all test clean
