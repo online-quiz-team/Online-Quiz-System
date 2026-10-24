@@ -2,9 +2,3 @@ registration_app
 registration_test
 students.txt
 test_students.txt
-
-quiz_server.exe
-quiz_submission.o
-test_submission.exe
-test_submission.cpp
-submissions.txt
