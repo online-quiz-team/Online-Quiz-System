@@ -1,9 +1,10 @@
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 #include "quiz_submission.h"
 
-#include <fstream>
 #include <string>
-#include <vector>
 
 bool QuizSubmission::submitQuiz(
     const std::string& studentId,
@@ -14,24 +15,58 @@ bool QuizSubmission::submitQuiz(
         return false;
     }
 
-    // Save submissions in the project root.
-    std::ofstream file("submissions.txt", std::ios::app);
-
-    if (!file.is_open()) {
+    WSADATA wsaData{};
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         return false;
     }
 
-    file << "Student ID: " << studentId << '\n';
-    file << "Quiz ID: " << quizId << '\n';
-    file << "Total Answers: " << answers.size() << '\n';
-
-    for (std::size_t i = 0; i < answers.size(); ++i) {
-        file << "Question " << (i + 1)
-             << ": " << answers[i] << '\n';
+    SOCKET client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (client == INVALID_SOCKET) {
+        WSACleanup();
+        return false;
     }
 
-    file << "---\n";
-    file.close();
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_port = htons(5050);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    return !file.fail();
+    if (connect(client, reinterpret_cast<sockaddr*>(&server),
+                sizeof(server)) == SOCKET_ERROR) {
+        closesocket(client);
+        WSACleanup();
+        return false;
+    }
+
+    std::string data = "Student ID: " + studentId +
+                       "\nQuiz ID: " + quizId +
+                       "\nTotal Answers: " + std::to_string(answers.size()) +
+                       "\n";
+
+    for (std::size_t i = 0; i < answers.size(); ++i) {
+        data += "Question " + std::to_string(i + 1) +
+                ": " + answers[i] + "\n";
+    }
+
+    std::size_t sent = 0;
+    while (sent < data.size()) {
+        int n = send(client, data.data() + sent,
+                     static_cast<int>(data.size() - sent), 0);
+        if (n == SOCKET_ERROR || n == 0) {
+            closesocket(client);
+            WSACleanup();
+            return false;
+        }
+        sent += static_cast<std::size_t>(n);
+    }
+
+    shutdown(client, SD_SEND);
+
+    char response[16]{};
+    int received = recv(client, response, sizeof(response) - 1, 0);
+
+    closesocket(client);
+    WSACleanup();
+
+    return received > 0 && std::string(response).find("OK") == 0;
 }
