@@ -2,6 +2,7 @@
 #include "registration.h"
 #include "authentication.h"
 #include "quiz.h"
+#include "quiz_submission.h"
 
 #include <iostream>
 #include <string>
@@ -26,7 +27,8 @@ std::string readPassword()
     }
 
     newSettings = oldSettings;
-    newSettings.c_lflag &= static_cast<tcflag_t>(~(ECHO | ICANON));
+    newSettings.c_lflag &=
+        static_cast<tcflag_t>(~(ECHO | ICANON));
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &newSettings) != 0) {
         std::getline(std::cin, password);
@@ -82,6 +84,11 @@ int main()
     Registration registration("students.txt");
     Authentication authentication("students.txt");
     QuizCatalog quizCatalog("quizzes.txt");
+    QuizSubmission quizSubmission;
+
+    // Track the currently authenticated student.
+    bool isLoggedIn = false;
+    std::string loggedInUsername;
 
     int choice = 0;
 
@@ -93,7 +100,7 @@ int main()
         std::cout << "2. Student Login\n";
         std::cout << "3. Display Available Quizzes\n";
         std::cout << "4. Select a Quiz\n";
-        std::cout << "5. Retrieve Quiz Questions and Options\n";
+        std::cout << "5. Take Quiz and Submit\n";
         std::cout << "0. Exit\n";
         std::cout << "Enter your choice: ";
 
@@ -144,8 +151,13 @@ int main()
             password = readPassword();
 
             if (authentication.login(username, password)) {
-                std::cout << "Login successful.\n";
+                loggedInUsername = username;
+                isLoggedIn = true;
+                std::cout << "Login successful. Welcome, "
+                          << loggedInUsername << "!\n";
             } else {
+                loggedInUsername.clear();
+                isLoggedIn = false;
                 std::cout << "Invalid username or password.\n";
             }
             break;
@@ -174,6 +186,13 @@ int main()
         }
 
         case 5: {
+            // A student must log in before taking and submitting a quiz.
+            if (!isLoggedIn) {
+                std::cout
+                    << "Please log in before taking a quiz.\n";
+                break;
+            }
+
             displayQuizzes(quizCatalog);
 
             std::string quizId;
@@ -188,23 +207,28 @@ int main()
             }
 
             const auto questions =
-                quizCatalog.getQuestionsForQuiz(quizId, "questions.txt");
+                quizCatalog.getQuestionsForQuiz(
+                    quizId, "questions.txt"
+                );
 
             if (questions.empty()) {
                 std::cout << "No questions found for this quiz.\n";
                 break;
             }
 
-            // OQS-F-008: Store accepted answers in question order.
+            // OQS-F-008: Store answers in question order.
             std::vector<char> answers(questions.size(), '\0');
+
+            bool inputEnded = false;
 
             for (std::size_t i = 0; i < questions.size(); ++i) {
                 const auto& question = questions[i];
 
-                // OQS-F-006: Display one MCQ at a time.
+                // OQS-F-006: Display one question at a time.
                 std::cout << "\033[2J\033[H";
                 std::cout << "====================================\n";
                 std::cout << "Quiz: " << selectedQuiz.title << '\n';
+                std::cout << "Student: " << loggedInUsername << '\n';
                 std::cout << "Question " << i + 1
                           << " of " << questions.size() << '\n';
                 std::cout << "====================================\n\n";
@@ -216,11 +240,18 @@ int main()
                               << ". " << question.options[j] << '\n';
                 }
 
-                // OQS-F-007: Validate the student's answer.
+                // OQS-F-007: Validate the selected option.
                 std::string answer;
                 char selectedOption = '\0';
 
                 while (true) {
+                    if (question.options.empty()) {
+                        std::cout
+                            << "This question has no answer options.\n";
+                        inputEnded = true;
+                        break;
+                    }
+
                     std::cout << "\nEnter your answer (A-"
                               << static_cast<char>(
                                      'A' + question.options.size() - 1
@@ -228,8 +259,8 @@ int main()
                               << "): " << std::flush;
 
                     if (!std::getline(std::cin, answer)) {
-                        std::cout << "\nInput ended. Returning to menu.\n";
-                        return 0;
+                        inputEnded = true;
+                        break;
                     }
 
                     if (answer.size() == 1) {
@@ -241,7 +272,9 @@ int main()
 
                         if (option >= 'A' &&
                             option < 'A' +
-                                static_cast<int>(question.options.size())) {
+                                static_cast<int>(
+                                    question.options.size()
+                                )) {
                             selectedOption = option;
                             break;
                         }
@@ -249,6 +282,10 @@ int main()
 
                     std::cout
                         << "Invalid option. Please enter a valid option.\n";
+                }
+
+                if (inputEnded) {
+                    break;
                 }
 
                 answers[i] = selectedOption;
@@ -263,8 +300,8 @@ int main()
 
                     std::string input;
                     if (!std::getline(std::cin, input)) {
-                        std::cout << "\nInput ended. Returning to menu.\n";
-                        return 0;
+                        inputEnded = true;
+                        break;
                     }
                 } else {
                     std::cout << "\nYou have reached the last question.\n";
@@ -272,8 +309,68 @@ int main()
                 }
             }
 
-            // Answers are held in memory; submission and scoring
-            // belong to their respective requirements.
+            if (inputEnded) {
+                std::cout
+                    << "\nQuiz was not submitted because the input "
+                    << "ended or a question could not be answered.\n";
+                break;
+            }
+
+            // OQS-F-009: Confirm submission after all answers are collected.
+            std::string confirmation;
+
+            while (true) {
+                std::cout
+                    << "\nDo you want to submit your completed quiz? (Y/N): ";
+
+                if (!std::getline(std::cin, confirmation)) {
+                    std::cout << "\nSubmission cancelled.\n";
+                    return 0;
+                }
+
+                if (confirmation.size() == 1) {
+                    const char response = static_cast<char>(
+                        std::toupper(
+                            static_cast<unsigned char>(confirmation[0])
+                        )
+                    );
+
+                    if (response == 'Y' || response == 'N') {
+                        confirmation = response;
+                        break;
+                    }
+                }
+
+                std::cout << "Please enter Y or N.\n";
+            }
+
+            if (confirmation == "N") {
+                std::cout
+                    << "Submission cancelled. Your answers were not saved.\n";
+                break;
+            }
+
+            // The existing submission interface accepts vector<string>.
+            std::vector<std::string> submissionAnswers;
+            submissionAnswers.reserve(answers.size());
+
+            for (char answer : answers) {
+                submissionAnswers.emplace_back(1, answer);
+            }
+
+            // Save locally for now. The implementation can later use a server.
+            if (quizSubmission.submitQuiz(
+                    loggedInUsername,
+                    selectedQuiz.id,
+                    submissionAnswers)) {
+                std::cout
+                    << "\nQuiz submitted successfully!\n";
+            } else {
+                std::cout
+                    << "\nQuiz submission failed. "
+                    << "Your submission could not be saved.\n";
+            }
+
             break;
         }
 
