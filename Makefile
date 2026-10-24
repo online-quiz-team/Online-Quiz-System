@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -Isrc
 LDLIBS = -lssl -lcrypto
 
 TARGET = registration_app
-SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp
+SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp
 
 all: $(TARGET)
 
