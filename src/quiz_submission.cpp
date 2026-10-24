@@ -29,7 +29,7 @@ bool QuizSubmission::submitQuiz(
     sockaddr_in server{};
     server.sin_family = AF_INET;
     server.sin_port = htons(5050);
-    server.sin_addr.s_addr = inet_addr("10.187.150.25");
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(client, reinterpret_cast<sockaddr*>(&server),
                 sizeof(server)) == SOCKET_ERROR) {
