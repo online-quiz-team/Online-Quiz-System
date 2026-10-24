@@ -3,12 +3,14 @@
 #include "authentication.h"
 #include "quiz.h"
 #include "quiz_submission.h"
+#include "quiz_scoring.h"
 
 #include <iostream>
 #include <string>
 #include <limits>
 #include <cctype>
 #include <vector>
+#include <iomanip>
 #include <termios.h>
 #include <unistd.h>
 
@@ -350,7 +352,7 @@ int main()
                 break;
             }
 
-            // The existing submission interface accepts vector<string>.
+            // Convert answers to the format expected by QuizSubmission.
             std::vector<std::string> submissionAnswers;
             submissionAnswers.reserve(answers.size());
 
@@ -358,13 +360,43 @@ int main()
                 submissionAnswers.emplace_back(1, answer);
             }
 
-            // Save locally for now. The implementation can later use a server.
+            // OQS-F-009: Save the submission.
             if (quizSubmission.submitQuiz(
                     loggedInUsername,
                     selectedQuiz.id,
                     submissionAnswers)) {
-                std::cout
-                    << "\nQuiz submitted successfully!\n";
+
+                std::cout << "\nQuiz submitted successfully!\n";
+
+                // OQS-F-010: Calculate score after successful submission.
+                const int score =
+                    calculateScore(submissionAnswers, questions);
+
+                if (score >= 0) {
+                    const double percentage =
+                        (static_cast<double>(score) /
+                         static_cast<double>(questions.size())) * 100.0;
+
+                    std::cout << "\n========== QUIZ RESULT ==========\n";
+                    std::cout << "Quiz: " << selectedQuiz.title << '\n';
+                    std::cout << "Correct answers: " << score << '\n';
+                    std::cout << "Incorrect answers: "
+                              << questions.size() -
+                                     static_cast<std::size_t>(score)
+                              << '\n';
+                    std::cout << "Total questions: "
+                              << questions.size() << '\n';
+                    std::cout << "Score: " << score
+                              << "/" << questions.size() << '\n';
+                    std::cout << std::fixed << std::setprecision(2);
+                    std::cout << "Percentage: " << percentage << "%\n";
+                    std::cout << "=================================\n";
+                } else {
+                    std::cout
+                        << "Unable to calculate the score because "
+                        << "the answer count does not match the "
+                        << "question count.\n";
+                }
             } else {
                 std::cout
                     << "\nQuiz submission failed. "
