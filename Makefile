@@ -8,22 +8,22 @@ SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp 
 all: $(TARGET)
 
 $(TARGET): $(SOURCES)
-    $(CXX) $(CXXFLAGS) $(SOURCES) -o $(TARGET) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) $(SOURCES) -o $(TARGET) $(LDLIBS)
 
 test:
-    $(CXX) $(CXXFLAGS) tests/registration_test.cpp src/registration.cpp -o registration_test $(LDLIBS)
-    ./registration_test
-    $(CXX) $(CXXFLAGS) tests/authentication_test.cpp src/authentication.cpp src/registration.cpp -o authentication_test $(LDLIBS)
-    ./authentication_test
-    $(CXX) $(CXXFLAGS) tests/quiz_test.cpp src/quiz.cpp -o quiz_test
-    ./quiz_test
-    $(CXX) $(CXXFLAGS) tests/quiz_scoring_test.cpp src/quiz_scoring.cpp -o quiz_scoring_test
-    ./quiz_scoring_test
-    $(CXX) $(CXXFLAGS) tests/feature_13_14_test.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp -o feature_13_14_test $(LDLIBS)
-    ./feature_13_14_test
-    rm -f registration_test authentication_test quiz_test quiz_scoring_test feature_13_14_test
+	$(CXX) $(CXXFLAGS) tests/registration_test.cpp src/registration.cpp -o registration_test $(LDLIBS)
+	./registration_test
+	$(CXX) $(CXXFLAGS) tests/authentication_test.cpp src/authentication.cpp src/registration.cpp -o authentication_test $(LDLIBS)
+	./authentication_test
+	$(CXX) $(CXXFLAGS) tests/quiz_test.cpp src/quiz.cpp -o quiz_test
+	./quiz_test
+	$(CXX) $(CXXFLAGS) tests/quiz_scoring_test.cpp src/quiz_scoring.cpp -o quiz_scoring_test
+	./quiz_scoring_test
+	$(CXX) $(CXXFLAGS) tests/feature_13_14_test.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp -o feature_13_14_test $(LDLIBS)
+	./feature_13_14_test
+	rm -f registration_test authentication_test quiz_test quiz_scoring_test feature_13_14_test
 
 clean:
-    rm -f $(TARGET) registration_test authentication_test quiz_test quiz_scoring_test feature_13_14_test
+	rm -f $(TARGET) registration_test authentication_test quiz_test quiz_scoring_test feature_13_14_test
 
 .PHONY: all test clean
