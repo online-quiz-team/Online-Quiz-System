@@ -287,19 +287,37 @@ int main()
             }
             if (inputEnded) break;
             std::string confirmation;
-            std::cout << "\nSubmit your completed quiz? (Y/N): ";
-            std::getline(std::cin, confirmation);
-            if (confirmation != "Y" && confirmation != "y") break;
-
+            while (true) {
+                std::cout << "\nSubmit your completed quiz? (Y/N): " << std::flush;
+                if (!std::getline(std::cin, confirmation)) break;
+                
+                if (confirmation == "Y" || confirmation == "y" || confirmation == "N" || confirmation == "n") {
+                    break; // Valid input, exit loop
+                }
+                std::cout << "Invalid input. Please enter Y or N.\n";
+            }
+            
+            if (confirmation == "N" || confirmation == "n") {
+                std::cout << "Quiz submission cancelled.\n";
+                break;
+            }
             std::vector<std::string> submissionAnswers;
             for (char answer : answers) submissionAnswers.emplace_back(1, answer);
             
-                        // Save directly to local file for instant results
-            std::ofstream outFile("submissions.txt", std::ios::app);
-            if (outFile) {
-                int tempScore = calculateScore(submissionAnswers, questions);
-                outFile << loggedInUsername << "," << selectedQuiz.id << "," << tempScore << "\n";
-                outFile.close();
+            // 1. Try to submit to the server first (Required by SRS)
+            bool submittedToServer = quizSubmission.submitQuiz(loggedInUsername, selectedQuiz.id, submissionAnswers);
+            
+            // 2. If the server is offline, fallback to local save so the app doesn't crash
+            if (!submittedToServer) {
+                std::cout << "\n[Warning] Server offline. Saving result locally...\n";
+                std::ofstream outFile("submissions.txt", std::ios::app);
+                if (outFile) {
+                    int tempScore = calculateScore(submissionAnswers, questions);
+                    outFile << loggedInUsername << "," << selectedQuiz.id << "," << tempScore << "\n";
+                    outFile.close();
+                }
+            } else {
+                std::cout << "\n[Success] Result saved to online server.\n";
             }
 
             // 3. Always display the result
