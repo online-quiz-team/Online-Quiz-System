@@ -43,6 +43,7 @@ Platform differences in networking (Winsock on Windows, BSD sockets on Linux and
 
 - Passwords are stored as PBKDF2-HMAC-SHA256 hashes with random salts using OpenSSL.
 - Plaintext passwords are not stored in the student records file.
+- Failed logins are written to `security.log` (UTC timestamp, event, username). Passwords are never logged: the logging API has no password parameter. Newlines and control characters in logged fields are replaced so user input cannot forge log entries, and a failed log write never crashes the app. `logAdminAction()` is provided for the administrator functions (OQS-F-015). On Linux and macOS the log file is created with owner-only permissions; on Windows the folder's default permissions apply.
 
 ### Optional TCP Client-Server Component
 
@@ -60,6 +61,7 @@ Online-Quiz-System/
 │   ├── authentication.cpp/.h     # Login and password verification
 │   ├── quiz.cpp/.h               # Quiz and question file parsing
 │   ├── quiz_scoring.cpp/.h       # Score calculation
+│   ├── security_log.cpp/.h       # Timestamped security event log
 │   ├── net_compat.h              # Winsock / BSD socket compatibility layer
 │   ├── quiz_submission.cpp/.h    # TCP submission client
 │   └── quiz_server.cpp           # TCP result server
@@ -142,7 +144,7 @@ Open an **x64 Native Tools Command Prompt for Visual Studio**. Adjust the OpenSS
 ```bat
 cl /EHsc /std:c++17 /I "C:\OpenSSL-Win64\include" ^
  src\main.cpp src\registration.cpp src\authentication.cpp ^
- src\quiz.cpp src\quiz_submission.cpp src\quiz_scoring.cpp ^
+ src\quiz.cpp src\quiz_submission.cpp src\quiz_scoring.cpp src\security_log.cpp ^
  /link /LIBPATH:"C:\OpenSSL-Win64\lib\VC\x64\MD" ^
  libssl.lib libcrypto.lib ws2_32.lib /OUT:quiz_game.exe
 ```
@@ -178,6 +180,7 @@ The unit tests cover:
 - Authentication with correct, incorrect, unknown, and empty credentials.
 - Quiz catalogue and question-file parsing.
 - Score calculation, including lowercase answers and incomplete submissions.
+- Security logging: failed-login and admin-action entries, timestamp format, log-injection protection, truncation, and failure handling.
 
 Remove generated test binaries with:
 

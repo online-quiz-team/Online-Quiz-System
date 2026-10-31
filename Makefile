@@ -10,8 +10,8 @@ RM_SUFFIX =
 
 TARGET = registration_app
 SERVER = quiz_server
-SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp
-TEST_BINS = registration_test$(EXE) authentication_test$(EXE) quiz_test$(EXE) quiz_scoring_test$(EXE) feature_13_14_test$(EXE)
+SOURCES = src/main.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp src/security_log.cpp
+TEST_BINS = registration_test$(EXE) authentication_test$(EXE) quiz_test$(EXE) quiz_scoring_test$(EXE) feature_13_14_test$(EXE) security_log_test$(EXE)
 
 # ---- Platform differences ----
 ifeq ($(OS),Windows_NT)
@@ -59,7 +59,8 @@ test:
 	$(call run_test,authentication_test,tests/authentication_test.cpp src/authentication.cpp src/registration.cpp,$(LDLIBS))
 	$(call run_test,quiz_test,tests/quiz_test.cpp src/quiz.cpp,)
 	$(call run_test,quiz_scoring_test,tests/quiz_scoring_test.cpp src/quiz_scoring.cpp,)
-	$(call run_test,feature_13_14_test,tests/feature_13_14_test.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp,$(LDLIBS) $(NETLIBS))
+	$(call run_test,feature_13_14_test,tests/feature_13_14_test.cpp src/registration.cpp src/authentication.cpp src/quiz.cpp src/quiz_submission.cpp src/quiz_scoring.cpp src/security_log.cpp,$(LDLIBS) $(NETLIBS))
+	$(call run_test,security_log_test,tests/security_log_test.cpp src/security_log.cpp,)
 	$(RM_CMD) $(TEST_BINS) $(RM_SUFFIX)
 
 clean:
