@@ -1,16 +1,36 @@
 name: C++ CI
 on: [push, pull_request]
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install OpenSSL
       run: sudo apt-get update && sudo apt-get install -y libssl-dev
-    - name: Compile and Run All Tests
-      run: |
-        g++ -std=c++17 -Isrc tests/registration_test.cpp src/registration.cpp -o test_reg -lssl -lcrypto && ./test_reg
-        g++ -std=c++17 -Isrc tests/authentication_test.cpp src/authentication.cpp src/registration.cpp -o test_auth -lssl -lcrypto && ./test_auth
-        g++ -std=c++17 -Isrc tests/quiz_scoring_test.cpp src/quiz_scoring.cpp -o test_score -lssl -lcrypto && ./test_score
-    - name: Build full app and server
+    - name: Build
       run: make
+    - name: Run all test suites
+      run: make test
+    - name: Clean
+      run: make clean
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          make
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-openssl
+    - name: Build
+      run: make
+    - name: Run all test suites
+      run: make test
+    - name: Clean
+      run: make clean
