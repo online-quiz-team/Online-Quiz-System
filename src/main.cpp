@@ -3,6 +3,7 @@
 #include "quiz.h"
 #include "quiz_submission.h"
 #include "quiz_scoring.h"
+#include "security_log.h"
 
 #include <iostream>
 #include <string>
@@ -196,6 +197,7 @@ int main()
             } else {
                 loggedInUsername.clear();
                 isLoggedIn = false;
+                securitylog::logFailedLogin(username);
                 std::cout << "Invalid username or password.\n";
             }
             break;
