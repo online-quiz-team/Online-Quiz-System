@@ -16,9 +16,9 @@ Sprint 1 covers the current implemented feature set, including student authentic
 
 ## Operating-System Support
 
-The core quiz application logic and unit tests are designed to compile on Windows and Linux, provided a compatible C++17 compiler and OpenSSL are installed.
+The whole project, including the optional TCP client and server, builds from the same source on Windows, Linux, and macOS. A C++17 compiler and OpenSSL are required.
 
-The optional network components, `src/quiz_submission.cpp` and `src/quiz_server.cpp`, currently use the Windows Winsock API, including `winsock2.h`, `WSAStartup`, and `closesocket`. These components are intended for Windows and are not currently portable to POSIX systems.
+Platform differences in networking (Winsock on Windows, BSD sockets on Linux and macOS) are isolated in `src/net_compat.h`. The client and server code is identical on every OS.
 
 ## Implemented Features
 
@@ -46,7 +46,7 @@ The optional network components, `src/quiz_submission.cpp` and `src/quiz_server.
 
 ### Optional TCP Client-Server Component
 
-The optional Windows network component allows quiz results to be submitted through TCP communication. The client and server use Winsock and TCP port `5050`.
+The optional network component allows quiz results to be submitted through TCP communication. The client and server use TCP port `5050` through the cross-platform layer in `src/net_compat.h`.
 
 The local submission workflow stores results in `submissions.txt`. Network submission is a separate optional component and depends on the client/server configuration and environment.
 
@@ -60,8 +60,9 @@ Online-Quiz-System/
 │   ├── authentication.cpp/.h     # Login and password verification
 │   ├── quiz.cpp/.h               # Quiz and question file parsing
 │   ├── quiz_scoring.cpp/.h       # Score calculation
-│   ├── quiz_submission.cpp/.h    # Windows TCP submission client
-│   └── quiz_server.cpp           # Windows TCP result server
+│   ├── net_compat.h              # Winsock / BSD socket compatibility layer
+│   ├── quiz_submission.cpp/.h    # TCP submission client
+│   └── quiz_server.cpp           # TCP result server
 ├── tests/                        # Unit tests and test report
 ├── quizzes.txt                   # Quiz catalogue
 ├── questions.txt                 # Questions and answer options
@@ -75,23 +76,62 @@ Online-Quiz-System/
 
 ## Prerequisites
 
-### Windows
+| OS | Install |
+|---|---|
+| Linux (Debian/Ubuntu) | `sudo apt update && sudo apt install build-essential libssl-dev` |
+| macOS | `xcode-select --install` and `brew install openssl` |
+| Windows (MSYS2 UCRT64) | In an MSYS2 UCRT64 shell: `pacman -S --needed make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl` |
+| Windows (MSVC) | Visual Studio Build Tools with **Desktop development with C++** and a 64-bit OpenSSL install (see the MSVC section below) |
 
-Use either:
+## Quick Start (Linux, macOS, Windows with MSYS2)
 
-- Visual Studio Build Tools with the **Desktop development with C++** workload and a compatible 64-bit OpenSSL installation; or
-- MSYS2 UCRT64 with `g++`, `make`, and OpenSSL.
+Run all commands from the project directory, because the application reads `students.txt`, `quizzes.txt`, `questions.txt`, and `submissions.txt` by relative path. On Windows, use the **MSYS2 UCRT64** shell.
 
-### Linux or POSIX
-
-Install the portable build and testing dependencies:
+### 1. Build
 
 ```bash
-sudo apt update
-sudo apt install build-essential libssl-dev
+make
 ```
 
-The complete TCP client-server component currently targets Windows because it uses Winsock.
+This produces two programs: `registration_app` (the quiz client; `registration_app.exe` on Windows) and `quiz_server` (the optional results server; `quiz_server.exe` on Windows).
+
+### 2. Run the quiz application
+
+```bash
+./registration_app
+```
+
+If no server is reachable, quiz results are saved locally to `submissions.txt`.
+
+### 3. (Optional) Run with the results server
+
+Terminal 1, start the server:
+
+```bash
+./quiz_server
+```
+
+Terminal 2, start the client. On the same machine no configuration is needed:
+
+```bash
+./registration_app
+```
+
+To submit to a server on another machine, set `QUIZ_SERVER_IP` to the server's IP address before starting the client:
+
+| Shell | Command |
+|---|---|
+| Linux / macOS / MSYS2 | `QUIZ_SERVER_IP=192.168.1.20 ./registration_app` |
+| Windows cmd | `set QUIZ_SERVER_IP=192.168.1.20` then `registration_app.exe` |
+| Windows PowerShell | `$env:QUIZ_SERVER_IP="192.168.1.20"` then `.\registration_app.exe` |
+
+The server listens on TCP port `5050` on all interfaces. Allow inbound TCP `5050` through the server machine's firewall. Without `QUIZ_SERVER_IP`, the client connects to `127.0.0.1`.
+
+### 4. Run the tests
+
+```bash
+make test
+```
 
 ## Build and Run on Windows with MSVC
 
@@ -122,7 +162,7 @@ cl /EHsc src\quiz_server.cpp ws2_32.lib /Fe:server.exe
 server.exe
 ```
 
-The server listens on TCP port `5050`. Configure the client IP address, server IP address, and firewall rules appropriately before using network submission.
+The server listens on TCP port `5050`. Set `QUIZ_SERVER_IP` (see Quick Start) and allow TCP port `5050` through the firewall before using network submission.
 
 ## Build and Test with GNU Make
 
@@ -145,13 +185,13 @@ Remove generated test binaries with:
 make clean
 ```
 
-**Platform note:** The default `make` target includes a Windows Winsock source file. On Linux or POSIX systems, use `make test` for the portable unit-test targets. The unit tests do not require the network server.
+**Platform note:** `make` builds on Linux, macOS, and Windows (MSYS2). The Makefile links `ws2_32` automatically on Windows and finds Homebrew OpenSSL on macOS. The unit tests do not require the network server.
 
 ## Test Report and Continuous Integration
 
 The Sprint 1 test report is maintained in [`tests/Sprint1_Test_Report.md`](tests/Sprint1_Test_Report.md).
 
-GitHub Actions runs the unit-test command on pushes and pull requests. The workflow is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and installs OpenSSL before running `make test`.
+GitHub Actions runs the unit tests and a full `make` build on pushes and pull requests. The workflow is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Data File Formats
 
