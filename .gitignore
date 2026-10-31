@@ -8,3 +8,13 @@ quiz_submission.o
 test_submission.exe
 test_submission.cpp
 submissions.txt
+quiz_server
+registration_app.exe
+registration_app_test.exe
+quiz_server_test.exe
+authentication_test
+quiz_test
+quiz_scoring_test
+feature_13_14_test
+*.exe
+*.o

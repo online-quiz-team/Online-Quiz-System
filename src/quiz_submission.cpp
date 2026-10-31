@@ -1,10 +1,17 @@
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include "net_compat.h"
 
 #include "quiz_submission.h"
 
+#include <cstdlib>
 #include <string>
+
+namespace {
+// Server address can be overridden with the QUIZ_SERVER_IP environment variable.
+const char* serverIp() {
+    const char* env = std::getenv("QUIZ_SERVER_IP");
+    return (env && *env) ? env : "127.0.0.1";
+}
+}  // namespace
 
 bool QuizSubmission::submitQuiz(
     const std::string& studentId,
@@ -15,26 +22,29 @@ bool QuizSubmission::submitQuiz(
         return false;
     }
 
-    WSADATA wsaData{};
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+    if (!netInit()) {
         return false;
     }
 
-    SOCKET client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (client == INVALID_SOCKET) {
-        WSACleanup();
+    sock_t client = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (client == SOCK_INVALID) {
+        netCleanup();
         return false;
     }
 
     sockaddr_in server{};
     server.sin_family = AF_INET;
     server.sin_port = htons(5050);
-    server.sin_addr.s_addr = inet_addr("10.187.150.25");
+    if (inet_pton(AF_INET, serverIp(), &server.sin_addr) != 1) {
+        sockClose(client);
+        netCleanup();
+        return false;
+    }
 
     if (connect(client, reinterpret_cast<sockaddr*>(&server),
-                sizeof(server)) == SOCKET_ERROR) {
-        closesocket(client);
-        WSACleanup();
+                sizeof(server)) == SOCK_ERROR) {
+        sockClose(client);
+        netCleanup();
         return false;
     }
 
@@ -50,23 +60,25 @@ bool QuizSubmission::submitQuiz(
 
     std::size_t sent = 0;
     while (sent < data.size()) {
-        int n = send(client, data.data() + sent,
-                     static_cast<int>(data.size() - sent), 0);
-        if (n == SOCKET_ERROR || n == 0) {
-            closesocket(client);
-            WSACleanup();
+        long n = static_cast<long>(
+            send(client, data.data() + sent,
+                 static_cast<sock_len_t>(data.size() - sent), 0));
+        if (n == SOCK_ERROR || n == 0) {
+            sockClose(client);
+            netCleanup();
             return false;
         }
         sent += static_cast<std::size_t>(n);
     }
 
-    shutdown(client, SD_SEND);
+    shutdown(client, SOCK_SHUT_WR);
 
     char response[16]{};
-    int received = recv(client, response, sizeof(response) - 1, 0);
+    long received = static_cast<long>(
+        recv(client, response, static_cast<sock_len_t>(sizeof(response) - 1), 0));
 
-    closesocket(client);
-    WSACleanup();
+    sockClose(client);
+    netCleanup();
 
     return received > 0 && std::string(response).find("OK") == 0;
 }
