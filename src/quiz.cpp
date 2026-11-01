@@ -1,3 +1,4 @@
+
 #include "quiz.h"
 
 #include <fstream>
@@ -12,6 +13,11 @@ std::vector<QuizInfo> QuizCatalog::getAvailableQuizzes() const {
     std::string line;
 
     while (std::getline(file, line)) {
+        // Handle Windows CRLF line endings.
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+
         std::istringstream stream(line);
         std::string id;
         std::string title;
@@ -76,6 +82,11 @@ std::vector<QuizQuestion> QuizCatalog::getQuestionsForQuiz(
     std::string line;
 
     while (std::getline(file, line)) {
+        // Handle Windows CRLF line endings.
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+
         std::istringstream stream(line);
         std::string rowQuizId;
         std::string numberText;
