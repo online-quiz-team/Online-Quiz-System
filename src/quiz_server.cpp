@@ -227,7 +227,7 @@ int main() {
 
     if (bind(server, reinterpret_cast<sockaddr*>(&address),
              sizeof(address)) == SOCK_ERROR ||
-        listen(server, 5) == SOCK_ERROR) {
+        listen(server, 50) == SOCK_ERROR) {
         std::cerr << "Failed to start server on port "
                   << SERVER_PORT << '\n';
         sockClose(server);
@@ -265,11 +265,16 @@ int main() {
         }
 
 
-const bool success = validRequestSize &&
-                     !data.empty() &&
-                     processSubmission(data);
+const bool requestComplete = (bytes == 0);
 
-sendResponse(client, success ? "OK\n" : "ERROR\n");
+        const bool success = validRequestSize &&
+                             requestComplete &&
+                             !data.empty() &&
+                             processSubmission(data);
+
+        if (!sendResponse(client, success ? "OK\n" : "ERROR\n")) {
+            std::cerr << "[WARNING] Failed to send response to client.\n";
+        }
 
 const auto requestEnd = std::chrono::steady_clock::now();
 const auto responseTime =
