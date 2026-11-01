@@ -1,3 +1,4 @@
+
 #ifndef REGISTRATION_H
 #define REGISTRATION_H
 
@@ -10,6 +11,11 @@ private:
 public:
     explicit Registration(const std::string& filename);
 
+    // Generic account registration.
+    bool registerAccount(const std::string& username,
+                         const std::string& password);
+
+    // Existing student registration.
     bool registerStudent(const std::string& username,
                          const std::string& password);
 
