@@ -21,3 +21,4 @@ feature_13_14_test
 security_log_test
 security.log
 test_security.log
+vcpkg/
