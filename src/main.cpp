@@ -398,7 +398,7 @@ void administratorMenu(
         std::cout << "0. Logout\n";
 
         if (!readInteger("Enter your choice: ", choice)) {
-            std::cout << "Invalid input.\n";
+            std::cout << "Invalid input. Please enter a valid menu number (0-4).\n";
             choice = -1;
             continue;
         }
@@ -545,7 +545,7 @@ void administratorMenu(
             break;
 
         default:
-            std::cout << "Invalid choice.\n";
+            std::cout << "Invalid choice. Please select one of the options displayed above.\n";
             break;
         }
 
@@ -792,7 +792,7 @@ int main() {
                         }
                     }
 
-                    std::cout << "Invalid option.\n";
+                    std::cout << "Invalid option. Please select one of the displayed answer options (A-D).\n";
                 }
 
                 if (inputEnded) {
@@ -905,7 +905,7 @@ int main() {
             break;
 
         default:
-            std::cout << "Invalid choice.\n";
+            std::cout << "Invalid choice. Please select one of the options displayed above.\n";
             break;
         }
 
