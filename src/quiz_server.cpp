@@ -5,12 +5,17 @@
 #include "quiz_scoring.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <mutex>
+#include <thread>
+#include <system_error>
 #include <string>
 #include <vector>
 
@@ -18,6 +23,8 @@ namespace {
 
 constexpr int SERVER_PORT = 5050;
 constexpr std::size_t MAX_REQUEST_SIZE = 65536;
+constexpr int MAX_CONCURRENT_SESSIONS = 50;
+std::mutex submissionMutex;
 
 bool sendResponse(sock_t client, const std::string& response) {
     std::size_t sent = 0;
@@ -184,6 +191,7 @@ bool processSubmission(const std::string& data) {
     }
 
     // Save only the server-calculated result.
+    std::lock_guard<std::mutex> lock(submissionMutex);
     std::ofstream file("submissions.txt", std::ios::app);
 
     if (!file.is_open()) {
@@ -198,6 +206,58 @@ bool processSubmission(const std::string& data) {
     return file.good();
 }
 
+void handleClient(sock_t client, std::atomic<int>& activeSessions) {
+    struct SessionGuard {
+        std::atomic<int>& counter;
+        ~SessionGuard() { counter.fetch_sub(1); }
+    } guard{activeSessions};
+
+    const auto requestStart = std::chrono::steady_clock::now();
+    std::string data;
+    char buffer[1024];
+    long bytes = 0;
+    bool validRequestSize = true;
+
+    while ((bytes = static_cast<long>(
+                recv(client, buffer,
+                     static_cast<sock_len_t>(sizeof(buffer)), 0))) > 0) {
+        if (data.size() + static_cast<std::size_t>(bytes) >
+            MAX_REQUEST_SIZE) {
+            validRequestSize = false;
+            break;
+        }
+        data.append(buffer, static_cast<std::size_t>(bytes));
+    }
+
+    const bool requestComplete = (bytes == 0);
+    const bool success = validRequestSize &&
+                         requestComplete &&
+                         !data.empty() &&
+                         processSubmission(data);
+
+    if (!sendResponse(client, success ? "OK\n" : "ERROR\n")) {
+        std::cerr << "[WARNING] Failed to send response to client.\n";
+    }
+
+    const auto requestEnd = std::chrono::steady_clock::now();
+    const auto responseTime =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            requestEnd - requestStart
+        ).count();
+
+    std::cout << (success
+        ? "Validated quiz result saved\n"
+        : "Invalid quiz submission rejected\n");
+
+    std::cout << "Server response time: "
+              << responseTime << " ms\n";
+
+    if (responseTime >= 3000) {
+        std::cerr << "[WARNING] Response time exceeded 3 seconds!\n";
+    }
+
+    sockClose(client);
+}
 }  // namespace
 
 int main() {
@@ -238,6 +298,8 @@ int main() {
     std::cout << "Quiz results server listening on port "
               << SERVER_PORT << std::endl;
 
+    std::atomic<int> activeSessions{0};
+
     while (true) {
         sock_t client = accept(server, nullptr, nullptr);
 
@@ -245,57 +307,31 @@ int main() {
             continue;
         }
 
-        const auto requestStart = std::chrono::steady_clock::now();
-        std::string data;
-        char buffer[1024];
-        long bytes = 0;
-        bool validRequestSize = true;
+        int active = activeSessions.load();
 
-        while ((bytes = static_cast<long>(
-                    recv(client, buffer,
-                         static_cast<sock_len_t>(sizeof(buffer)), 0))) > 0) {
-
-            if (data.size() + static_cast<std::size_t>(bytes) >
-                MAX_REQUEST_SIZE) {
-                validRequestSize = false;
-                break;
-            }
-
-            data.append(buffer, static_cast<std::size_t>(bytes));
+        while (active < MAX_CONCURRENT_SESSIONS &&
+               !activeSessions.compare_exchange_weak(active, active + 1)) {
         }
 
-
-const bool requestComplete = (bytes == 0);
-
-        const bool success = validRequestSize &&
-                             requestComplete &&
-                             !data.empty() &&
-                             processSubmission(data);
-
-        if (!sendResponse(client, success ? "OK\n" : "ERROR\n")) {
-            std::cerr << "[WARNING] Failed to send response to client.\n";
+        if (active >= MAX_CONCURRENT_SESSIONS) {
+            sendResponse(client, "ERROR\n");
+            sockClose(client);
+            std::cerr << "[WARNING] Maximum concurrent sessions reached.\n";
+            continue;
         }
 
-const auto requestEnd = std::chrono::steady_clock::now();
-const auto responseTime =
-    std::chrono::duration_cast<std::chrono::milliseconds>(
-        requestEnd - requestStart
-    ).count();
-
-std::cout << (success
-    ? "Validated quiz result saved\n"
-    : "Invalid quiz submission rejected\n");
-
-std::cout << "Server response time: "
-          << responseTime << " ms\n";
-
-if (responseTime >= 3000) {
-    std::cerr << "[WARNING] Response time exceeded 3 seconds!\n";
-}
-
-sockClose(client);
+        try {
+            std::thread(
+                handleClient, client, std::ref(activeSessions)
+            ).detach();
+        } catch (const std::system_error& error) {
+            activeSessions.fetch_sub(1);
+            std::cerr << "[ERROR] Could not start client thread: "
+                      << error.what() << '\n';
+            sendResponse(client, "ERROR\n");
+            sockClose(client);
+        }
     }
-
     sockClose(server);
     netCleanup();
     return 0;
