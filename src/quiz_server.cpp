@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -262,16 +263,32 @@ int main() {
             data.append(buffer, static_cast<std::size_t>(bytes));
         }
 
-        if (validRequestSize && !data.empty() &&
-            processSubmission(data)) {
-            sendResponse(client, "OK\n");
-            std::cout << "Validated quiz result saved\n";
-        } else {
-            sendResponse(client, "ERROR\n");
-            std::cout << "Invalid quiz submission rejected\n";
-        }
+        const auto requestStart = std::chrono::steady_clock::now();
 
-        sockClose(client);
+const bool success = validRequestSize &&
+                     !data.empty() &&
+                     processSubmission(data);
+
+sendResponse(client, success ? "OK\n" : "ERROR\n");
+
+const auto requestEnd = std::chrono::steady_clock::now();
+const auto responseTime =
+    std::chrono::duration_cast<std::chrono::milliseconds>(
+        requestEnd - requestStart
+    ).count();
+
+std::cout << (success
+    ? "Validated quiz result saved\n"
+    : "Invalid quiz submission rejected\n");
+
+std::cout << "Server response time: "
+          << responseTime << " ms\n";
+
+if (responseTime >= 3000) {
+    std::cerr << "[WARNING] Response time exceeded 3 seconds!\n";
+}
+
+sockClose(client);
     }
 
     sockClose(server);
