@@ -629,6 +629,7 @@ int main() {
             if (authentication.login(username, password)) {
                 loggedInUsername = username;
                 isLoggedIn = true;
+                securitylog::logEvent("LOGIN_SUCCESS", username);
 
                 std::cout << "Login successful. Welcome, "
                           << loggedInUsername << "!\n";
@@ -874,6 +875,13 @@ int main() {
             } else {
                 std::cout << "\n[Success] Result saved to online server.\n";
             }
+
+            securitylog::logEvent(
+                "QUIZ_SUBMISSION", loggedInUsername,
+                "quiz=" + selectedQuiz.id +
+                ", score=" + std::to_string(score) +
+                (submittedToServer ? ", destination=server"
+                                    : ", destination=local"));
 
             const double percentage =
                 (static_cast<double>(score) / questions.size()) * 100.0;
