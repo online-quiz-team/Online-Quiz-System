@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <cstdio>
+#include "registration.h"
+#include "quiz_submission.h"
 
 // Helper to read the test log file
 std::vector<std::string> readLines(const std::string& filename) {
@@ -57,6 +59,40 @@ TEST(SecurityLogTest, HandlesLogInjection) {
     std::remove(testLog.c_str());
 }
 
+
+
+TEST(SecurityPasswordTest, PasswordsAreHashed) {
+    std::string testFile = "test_students.txt";
+    std::remove(testFile.c_str());
+    
+    Registration reg(testFile);
+    std::string password = "SuperSecretPassword123";
+    EXPECT_TRUE(reg.registerStudent("testuser", password));
+    
+    std::ifstream file(testFile);
+    std::string line;
+    std::getline(file, line);
+    file.close();
+    
+    // Assert plaintext password is NOT in the file
+    EXPECT_EQ(line.find(password), std::string::npos);
+    
+    // Assert file has colons (username:salt:hash format)
+    size_t firstColon = line.find(':');
+    EXPECT_NE(firstColon, std::string::npos);
+    
+    std::remove(testFile.c_str());
+}
+
+TEST(SecurityNetworkTest, HandlesServerOfflineGracefully) {
+    QuizSubmission submitter;
+    std::vector<std::string> fakeAnswers = {"A", "B", "C"};
+    
+    // Since server is not running, this should return false and NOT crash
+    bool result = submitter.submitQuiz("testuser", "Q001", fakeAnswers);
+    
+    EXPECT_FALSE(result); 
+}
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
