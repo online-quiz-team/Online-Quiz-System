@@ -500,9 +500,6 @@ void administratorMenu(
             std::cout << "\nEnter Quiz ID: ";
             std::getline(std::cin, quizId);
 
-            int unused = 0;
-            (void)unused;
-
             if (!readInteger("Enter question number to delete: ",
                              questionNumber) ||
                 questionNumber <= 0) {
@@ -575,12 +572,16 @@ int main() {
         std::cout << "\n====================================\n";
         std::cout << "       ONLINE QUIZ SYSTEM\n";
         std::cout << "====================================\n";
-        std::cout << "1. Register Student\n";
-        std::cout << "2. Student Login\n";
-        std::cout << "3. Administrator Login\n";
 
-        if (!hasAdministrator()) {
-            std::cout << "4. First Administrator Setup\n";
+        // Show account options only when no student is logged in.
+        if (!isLoggedIn) {
+            std::cout << "1. Register Student\n";
+            std::cout << "2. Student Login\n";
+            std::cout << "3. Administrator Login\n";
+
+            if (!hasAdministrator()) {
+                std::cout << "4. First Administrator Setup\n";
+            }
         }
 
         std::cout << "5. Display Available Quizzes\n";
@@ -588,6 +589,11 @@ int main() {
         std::cout << "7. Take Quiz and Submit\n";
         std::cout << "8. View Previous Results\n";
         std::cout << "9. View Leaderboard\n";
+
+        if (isLoggedIn) {
+            std::cout << "10. Student Logout\n";
+        }
+
         std::cout << "0. Exit\n";
 
         if (!readInteger("Enter your choice: ", choice)) {
@@ -598,6 +604,11 @@ int main() {
 
         switch (choice) {
         case 1: {
+            if (isLoggedIn) {
+                std::cout << "Please log out of your current account first.\n";
+                break;
+            }
+
             std::string username;
 
             std::cout << "\n--- Student Registration ---\n";
@@ -617,6 +628,11 @@ int main() {
         }
 
         case 2: {
+            if (isLoggedIn) {
+                std::cout << "Please log out of your current account first.\n";
+                break;
+            }
+
             std::string username;
 
             std::cout << "\n--- Student Login ---\n";
@@ -629,14 +645,13 @@ int main() {
             if (authentication.login(username, password)) {
                 loggedInUsername = username;
                 isLoggedIn = true;
+                currentQuizId.clear();
+
                 securitylog::logEvent("LOGIN_SUCCESS", username);
 
                 std::cout << "Login successful. Welcome, "
                           << loggedInUsername << "!\n";
             } else {
-                loggedInUsername.clear();
-                isLoggedIn = false;
-
                 securitylog::logFailedLogin(username);
                 std::cout << "Invalid username or password.\n";
             }
@@ -645,6 +660,11 @@ int main() {
         }
 
         case 3: {
+            if (isLoggedIn) {
+                std::cout << "Please log out of your student account first.\n";
+                break;
+            }
+
             std::string username;
 
             std::cout << "\n--- Administrator Login ---\n";
@@ -670,6 +690,11 @@ int main() {
         }
 
         case 4: {
+            if (isLoggedIn) {
+                std::cout << "Please log out of your student account first.\n";
+                break;
+            }
+
             if (hasAdministrator()) {
                 std::cout << "An administrator account already exists. "
                              "Use Administrator Login.\n";
@@ -907,6 +932,25 @@ int main() {
         case 9:
             viewLeaderboard(quizCatalog);
             break;
+
+        case 10: {
+            if (!isLoggedIn) {
+                std::cout << "No student is currently logged in.\n";
+                break;
+            }
+
+            securitylog::logEvent("LOGOUT", loggedInUsername);
+
+            std::cout << "Student " << loggedInUsername
+                      << " logged out successfully.\n";
+
+            loggedInUsername.clear();
+            isLoggedIn = false;
+            currentQuizId.clear();
+            currentQuiz = QuizInfo{};
+
+            break;
+        }
 
         case 0:
             std::cout << "Exiting Online Quiz System. Goodbye!\n";
